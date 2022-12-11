@@ -1,0 +1,28 @@
+syntax = "proto3";
+
+option csharp_namespace = "Rpc.Core";
+
+package serviceInteraction;
+
+service ServiceInteraction {
+  rpc Ping(EmptyMessage) returns (PingReply);
+  
+  rpc GetConnectionInfo(LoginMessage) returns (GetConnectionInfoReply);
+}
+
+message EmptyMessage {
+  
+}
+
+message PingReply {
+  bool is_successful = 1;
+}
+
+message LoginMessage {
+  string login = 1;
+}
+
+message GetConnectionInfoReply {
+  bool is_connected = 1;
+  int32 clients_number = 2;
+}
