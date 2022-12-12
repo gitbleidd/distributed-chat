@@ -63,7 +63,7 @@ namespace Chat.Client
                     return;
                 }
 
-                Enabled = false;
+                SetComponentsEnableability(false);
 
                 MessageBox.Show("Disconnected from the server\nTrying to reconnect...");
 
@@ -116,13 +116,13 @@ namespace Chat.Client
 
         private async void Main_Load(object sender, EventArgs e)
         {
-            Enabled = false;
+            SetComponentsEnableability(false);
 
             var isConnected = await TryConnectToServer(_address, _userName);
             
             if (isConnected)
             {
-                Enabled = true;
+                SetComponentsEnableability(true);
                 return;
             }
 
@@ -206,7 +206,7 @@ namespace Chat.Client
             (int code, string address, bool isConnectedToServer) res = await connectionTask;
             if (res.isConnectedToServer)
             {
-                Enabled = true;
+                SetComponentsEnableability(true);
                 return;
             }
 
@@ -280,6 +280,12 @@ namespace Chat.Client
             e.DrawBackground();
             e.DrawFocusRectangle();
             e.Graphics.DrawString(lboxChat.Items[e.Index].ToString(), e.Font, new SolidBrush(e.ForeColor), e.Bounds);
+        }
+
+        private void SetComponentsEnableability(bool enable)
+        {
+            lboxChat.SelectedIndex = -1;
+            lboxChat.Enabled = tbInput.Enabled = btSend.Enabled = enable;
         }
     }
 }
