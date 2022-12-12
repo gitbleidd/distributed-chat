@@ -2,7 +2,7 @@
 using Grpc.Core;
 using Rpc.Core;
 
-namespace Chat.Dispatcher.GrpcServices
+namespace Chat.Server.GrpcServices
 {
     public class InteractionService : Rpc.Core.ServiceInteraction.ServiceInteractionBase
     {

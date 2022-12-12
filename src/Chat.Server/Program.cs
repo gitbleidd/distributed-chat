@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.Hosting.Server;
 using Microsoft.AspNetCore.Hosting.Server.Features;
 using Chat.Server;
 
-namespace Chat.Dispatcher
+namespace Chat.Server
 {
     public class Program
     {
@@ -20,8 +20,8 @@ namespace Chat.Dispatcher
             builder.Services.AddSignalR((o) => o.EnableDetailedErrors = true);
 
             string connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
-            //builder.Services.AddDbContext<ChatContext>(options => options.UseNpgsql(connectionString));
-            builder.Services.AddDbContext<ChatContext>(options => options.UseInMemoryDatabase("distributed_chat"));
+            builder.Services.AddDbContext<ChatContext>(options => options.UseNpgsql(connectionString));
+            //builder.Services.AddDbContext<ChatContext>(options => options.UseInMemoryDatabase("distributed_chat"));
             builder.Services.AddSingleton(new Users());
 
             var app = builder.Build();
@@ -35,7 +35,6 @@ namespace Chat.Dispatcher
             });
 
             app.Start();
-
 
 
             // Ping dispatcher to send ports

@@ -16,6 +16,26 @@ namespace Chat.Client
             InitializeComponent();
             tbInput.KeyDown += new KeyEventHandler(tb_KeyDown);
         }
+        private async void Main_Load(object sender, EventArgs e)
+        {
+            SetComponentsEnableability(false);
+
+            var isConnected = await TryConnectToServer(_address, _userName);
+
+
+            if (isConnected)
+            {
+                try
+                {
+                    await _connection.InvokeAsync("GetHistory");
+                    SetComponentsEnableability(true);
+                    return;
+                }
+                catch { }
+            }
+
+            await TryToReconnectOrClose();
+        }
 
         protected async override void OnFormClosing(FormClosingEventArgs e)
         {
@@ -44,16 +64,15 @@ namespace Chat.Client
                 BeginInvoke(() =>
                 {
                     lboxChat.Items.Add($"{user}: {message}");
+                    lboxChat.SelectedIndex = lboxChat.Items.Count - 1;
+                    lboxChat.ClearSelected();
                 });
             });
 
-            //History Messages
-            connection.On<List<HistMessage>>("GetHistory", (messages) =>
+            // History Messages
+            connection.On<List<HistMessage>>("ReceiveHistory", (messages) =>
             {
-                BeginInvoke(() =>
-                {
-                    SetChatHistory(messages);
-                });
+                this.Invoke(new Action(() => SetChatHistory(messages)));
             });
 
             connection.Closed += async (error) =>
@@ -63,7 +82,15 @@ namespace Chat.Client
                     return;
                 }
 
-                SetComponentsEnableability(false);
+                try
+                {
+                    this.Invoke(new Action(() => SetComponentsEnableability(false)));
+                }
+                catch (Exception)
+                {
+                    Console.WriteLine();
+                }
+                //SetComponentsEnableability(false);
 
                 MessageBox.Show("Disconnected from the server\nTrying to reconnect...");
 
@@ -106,27 +133,14 @@ namespace Chat.Client
 
         private void SetChatHistory(List<HistMessage> messages)
         {
+            lboxChat.ClearSelected();
             lboxChat.Items.Clear();
 
-            foreach (var item in messages)
+            for (int i = messages.Count - 1; i >= 0; i--)
             {
+                var item = messages[i];
                 lboxChat.Items.Add($"{item.User}: {item.Content}");
             }
-        }
-
-        private async void Main_Load(object sender, EventArgs e)
-        {
-            SetComponentsEnableability(false);
-
-            var isConnected = await TryConnectToServer(_address, _userName);
-            
-            if (isConnected)
-            {
-                SetComponentsEnableability(true);
-                return;
-            }
-
-            await TryToReconnectOrClose();
         }
 
         /// <summary>
@@ -134,15 +148,17 @@ namespace Chat.Client
         /// </summary>
         private async Task TryToReconnectOrClose()
         {
-            CancellationTokenSource cancelTokenSource = new();
-            CancellationToken token = cancelTokenSource.Token;
+            using CancellationTokenSource cancelTokenSource = new();
+            cancelTokenSource.CancelAfter(TimeSpan.FromSeconds(10)); // Timeout for reconnect
+            CancellationToken cancelToken = cancelTokenSource.Token;
+            await Task.Delay(300); // Time in case server restarting
 
-            var task = new Task<Task<(int, string, bool)>>(async () =>
+            async Task<(int, string, bool)> Connect(CancellationToken cancellationToken)
             {
                 (int code, string address) response = (0, string.Empty);
                 bool isConnectedToServer = false;
 
-                while (token.IsCancellationRequested)
+                while (!cancellationToken.IsCancellationRequested)
                 {
                     // Trying to get another server address
                     try
@@ -172,10 +188,11 @@ namespace Chat.Client
                     {
                         try
                         {
+                            //this.Invoke(new Action(async () => await _connection.InvokeAsync("GetHistory")));
                             await _connection.InvokeAsync("GetHistory");
                             break;
                         }
-                        catch 
+                        catch
                         {
                             isConnectedToServer = false;
                         }
@@ -183,30 +200,13 @@ namespace Chat.Client
                 }
 
                 return (response.code, response.address, isConnectedToServer);
-            }, token);
-
-            // Timeout for reconnect
-            var waitResult = await Task.WhenAny(task, Task.Delay(TimeSpan.FromSeconds(10)));
-            
-            Task<(int, string, bool)> connectionTask;
-            
-            if (waitResult == task)
-            {
-                connectionTask = (Task<(int, string, bool)>)waitResult;
             }
-            else
-            {
-                cancelTokenSource.Cancel();
-                cancelTokenSource.Dispose();
+            (int code, string address, bool isConnectedToServer) res = await Connect(cancelToken);
 
-                connectionTask = (Task<(int, string, bool)>)waitResult;
-            }
-
-            // Connected, received chat history -> enable form for user
-            (int code, string address, bool isConnectedToServer) res = await connectionTask;
+            // Connected to server and received chat history -> enable form for user
             if (res.isConnectedToServer)
             {
-                SetComponentsEnableability(true);
+                this.Invoke(new Action(() => SetComponentsEnableability(true)));
                 return;
             }
 
@@ -228,7 +228,7 @@ namespace Chat.Client
                     break;
             }
 
-            Close();
+            this.Invoke(new Action(() => Close()));
         }
 
         private async Task<bool> TryConnectToServer(string address, string userName)
@@ -279,13 +279,14 @@ namespace Chat.Client
         {
             e.DrawBackground();
             e.DrawFocusRectangle();
-            e.Graphics.DrawString(lboxChat.Items[e.Index].ToString(), e.Font, new SolidBrush(e.ForeColor), e.Bounds);
+            if (e.Index >= 0)
+                e.Graphics.DrawString(lboxChat.Items[e.Index].ToString(), e.Font, new SolidBrush(e.ForeColor), e.Bounds);
         }
 
         private void SetComponentsEnableability(bool enable)
         {
-            lboxChat.SelectedIndex = -1;
             lboxChat.Enabled = tbInput.Enabled = btSend.Enabled = enable;
+            lboxChat.ClearSelected();
         }
     }
 }

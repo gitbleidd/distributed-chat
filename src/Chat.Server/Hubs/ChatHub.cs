@@ -19,12 +19,12 @@ namespace Chat.Server.Hubs
         public async Task SendMessage(string user, string message)
         {
             // 1. Save in DB
-            _context.Add(new Message { User = user, Content = message });
-            _context.SaveChanges();
+            _context.Messages.Add(new Message { User = user, Content = message });
+            await _context.SaveChangesAsync();
 
             // 2. Send to other servers via RabbitMQ
             // TODO
-            
+
             // 3. Send to other clients
             await Clients.All.SendAsync("ReceiveMessage", user, message);
         }
@@ -34,8 +34,6 @@ namespace Chat.Server.Hubs
             var messages = await _context.Messages.OrderByDescending(p => p.Id).Take(5).ToListAsync();
 
             await Clients.Caller.SendAsync("ReceiveHistory", messages);
-
-            //await Clients.All.SendAsync("ReceiveMessage", user, message);
         }
 
         public async Task Auth(string login)
