@@ -36,9 +36,10 @@
             // 
             // btLogin
             // 
-            this.btLogin.Location = new System.Drawing.Point(213, 27);
+            this.btLogin.Location = new System.Drawing.Point(396, 58);
+            this.btLogin.Margin = new System.Windows.Forms.Padding(6, 6, 6, 6);
             this.btLogin.Name = "btLogin";
-            this.btLogin.Size = new System.Drawing.Size(75, 23);
+            this.btLogin.Size = new System.Drawing.Size(139, 49);
             this.btLogin.TabIndex = 0;
             this.btLogin.Text = "Login";
             this.btLogin.UseVisualStyleBackColor = true;
@@ -47,17 +48,19 @@
             // lbEnterUser
             // 
             this.lbEnterUser.AutoSize = true;
-            this.lbEnterUser.Location = new System.Drawing.Point(12, 9);
+            this.lbEnterUser.Location = new System.Drawing.Point(22, 19);
+            this.lbEnterUser.Margin = new System.Windows.Forms.Padding(6, 0, 6, 0);
             this.lbEnterUser.Name = "lbEnterUser";
-            this.lbEnterUser.Size = new System.Drawing.Size(92, 15);
+            this.lbEnterUser.Size = new System.Drawing.Size(186, 32);
             this.lbEnterUser.TabIndex = 1;
             this.lbEnterUser.Text = "Enter username:";
             // 
             // tbUserInput
             // 
-            this.tbUserInput.Location = new System.Drawing.Point(15, 27);
+            this.tbUserInput.Location = new System.Drawing.Point(28, 58);
+            this.tbUserInput.Margin = new System.Windows.Forms.Padding(6, 6, 6, 6);
             this.tbUserInput.Name = "tbUserInput";
-            this.tbUserInput.Size = new System.Drawing.Size(177, 23);
+            this.tbUserInput.Size = new System.Drawing.Size(325, 39);
             this.tbUserInput.TabIndex = 2;
             this.tbUserInput.TextChanged += new System.EventHandler(this.tbUserInput_TextChanged);
             // 
@@ -65,9 +68,10 @@
             // 
             this.lbError.AutoSize = true;
             this.lbError.ForeColor = System.Drawing.Color.Red;
-            this.lbError.Location = new System.Drawing.Point(15, 53);
+            this.lbError.Location = new System.Drawing.Point(28, 113);
+            this.lbError.Margin = new System.Windows.Forms.Padding(6, 0, 6, 0);
             this.lbError.Name = "lbError";
-            this.lbError.Size = new System.Drawing.Size(32, 15);
+            this.lbError.Size = new System.Drawing.Size(64, 32);
             this.lbError.TabIndex = 0;
             this.lbError.Text = "Error";
             this.lbError.TextAlign = System.Drawing.ContentAlignment.TopCenter;
@@ -75,16 +79,18 @@
             // 
             // AuthForm
             // 
-            this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 15F);
+            this.AutoScaleDimensions = new System.Drawing.SizeF(13F, 32F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(300, 76);
+            this.ClientSize = new System.Drawing.Size(557, 162);
             this.Controls.Add(this.lbError);
             this.Controls.Add(this.tbUserInput);
             this.Controls.Add(this.lbEnterUser);
             this.Controls.Add(this.btLogin);
             this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedSingle;
+            this.Margin = new System.Windows.Forms.Padding(6, 6, 6, 6);
             this.MaximizeBox = false;
             this.Name = "AuthForm";
+            this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
             this.Text = "Authorization";
             this.ResumeLayout(false);
             this.PerformLayout();

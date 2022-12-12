@@ -12,7 +12,7 @@ namespace Chat.Client
         static AuthClient()
         {
             _httpClient = new HttpClient();
-            _httpClient.Timeout = TimeSpan.FromMilliseconds(2000);
+            _httpClient.Timeout = TimeSpan.FromMilliseconds(5000);
             _dispatcherAddress = ConfigurationSettings.AppSettings.Get("DispatcherAddress");
         }
 

@@ -23,10 +23,8 @@ namespace Chat.Client
             {
                 await _connection.StopAsync();
             }
-            catch (Exception ex)
-            {
-                MessageBox.Show(ex.Message);
-            }
+            catch { }
+
             base.OnFormClosing(e);
         }
 
@@ -60,7 +58,12 @@ namespace Chat.Client
 
             connection.Closed += async (error) =>
             {
-                //btSend.Enabled = false;
+                if (error is null)
+                {
+                    return;
+                }
+
+                Enabled = false;
 
                 MessageBox.Show("Disconnected from the server\nTrying to reconnect...");
 
@@ -70,7 +73,9 @@ namespace Chat.Client
 
         private async void btSend_Click(object sender, EventArgs e)
         {
-            if (string.IsNullOrEmpty(tbInput.Text.Trim()))
+            var trimmedMessage = tbInput.Text.Trim();
+
+            if (string.IsNullOrEmpty(trimmedMessage))
             {
                 return;
             }
@@ -263,6 +268,18 @@ namespace Chat.Client
             {
                 throw;
             }
+        }
+
+        private void lboxChat_MeasureItem(object sender, MeasureItemEventArgs e)
+        {
+            e.ItemHeight = (int)e.Graphics.MeasureString(lboxChat.Items[e.Index].ToString(), lboxChat.Font, lboxChat.Width).Height;
+        }
+
+        private void lboxChat_DrawItem(object sender, DrawItemEventArgs e)
+        {
+            e.DrawBackground();
+            e.DrawFocusRectangle();
+            e.Graphics.DrawString(lboxChat.Items[e.Index].ToString(), e.Font, new SolidBrush(e.ForeColor), e.Bounds);
         }
     }
 }

@@ -35,8 +35,8 @@
             // 
             // btSend
             // 
-            this.btSend.Location = new System.Drawing.Point(529, 390);
-            this.btSend.Margin = new System.Windows.Forms.Padding(6, 6, 6, 6);
+            this.btSend.Location = new System.Drawing.Point(611, 370);
+            this.btSend.Margin = new System.Windows.Forms.Padding(6);
             this.btSend.Name = "btSend";
             this.btSend.Size = new System.Drawing.Size(106, 49);
             this.btSend.TabIndex = 0;
@@ -46,34 +46,38 @@
             // 
             // tbInput
             // 
-            this.tbInput.Location = new System.Drawing.Point(22, 390);
-            this.tbInput.Margin = new System.Windows.Forms.Padding(6, 6, 6, 6);
+            this.tbInput.Location = new System.Drawing.Point(10, 380);
+            this.tbInput.Margin = new System.Windows.Forms.Padding(6);
             this.tbInput.Name = "tbInput";
-            this.tbInput.Size = new System.Drawing.Size(476, 39);
+            this.tbInput.Size = new System.Drawing.Size(589, 39);
             this.tbInput.TabIndex = 1;
             // 
             // lboxChat
             // 
+            this.lboxChat.DrawMode = System.Windows.Forms.DrawMode.OwnerDrawVariable;
             this.lboxChat.FormattingEnabled = true;
             this.lboxChat.ItemHeight = 32;
-            this.lboxChat.Location = new System.Drawing.Point(22, 26);
-            this.lboxChat.Margin = new System.Windows.Forms.Padding(6, 6, 6, 6);
+            this.lboxChat.Location = new System.Drawing.Point(10, 30);
+            this.lboxChat.Margin = new System.Windows.Forms.Padding(6);
             this.lboxChat.Name = "lboxChat";
-            this.lboxChat.Size = new System.Drawing.Size(609, 324);
+            this.lboxChat.Size = new System.Drawing.Size(708, 324);
             this.lboxChat.TabIndex = 2;
+            this.lboxChat.DrawItem += new System.Windows.Forms.DrawItemEventHandler(this.lboxChat_DrawItem);
+            this.lboxChat.MeasureItem += new System.Windows.Forms.MeasureItemEventHandler(this.lboxChat_MeasureItem);
             // 
             // Main
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(13F, 32F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(657, 459);
+            this.ClientSize = new System.Drawing.Size(731, 434);
             this.Controls.Add(this.lboxChat);
             this.Controls.Add(this.tbInput);
             this.Controls.Add(this.btSend);
             this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedSingle;
-            this.Margin = new System.Windows.Forms.Padding(6, 6, 6, 6);
+            this.Margin = new System.Windows.Forms.Padding(6);
             this.MaximizeBox = false;
             this.Name = "Main";
+            this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
             this.Text = "Distributed Chat";
             this.Load += new System.EventHandler(this.Main_Load);
             this.ResumeLayout(false);
