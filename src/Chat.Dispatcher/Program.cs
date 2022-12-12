@@ -1,10 +1,17 @@
-﻿namespace Chat.Dispatcher
+namespace Chat.Dispatcher
 {
-    internal class Program
+    public class Program
     {
-        static void Main(string[] args)
+        public static void Main(string[] args)
         {
-            Console.WriteLine("Hello, World!");
+            var builder = WebApplication.CreateBuilder(args);
+            builder.Services.AddGrpc();
+            
+            var app = builder.Build();
+            app.MapGrpcService<GrpcServices.InteractionService>();
+            //app.MapGet("/", () => "Hello World!");
+
+            app.Run();
         }
     }
 }
