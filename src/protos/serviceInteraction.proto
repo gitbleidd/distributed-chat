@@ -5,13 +5,14 @@ option csharp_namespace = "Rpc.Core";
 package serviceInteraction;
 
 service ServiceInteraction {
-  rpc Ping(EmptyMessage) returns (PingReply);
+  rpc Ping(PingMessage) returns (PingReply);
   
   rpc GetConnectionInfo(LoginMessage) returns (GetConnectionInfoReply);
 }
 
-message EmptyMessage {
-  
+message PingMessage {
+  string port1 = 1;
+  string port2 = 2;
 }
 
 message PingReply {

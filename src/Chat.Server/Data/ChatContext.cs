@@ -5,7 +5,7 @@ namespace Chat.Server.Data
 {
     public class ChatContext : DbContext
     {
-        public DbSet<Message> Books => Set<Message>();
+        public DbSet<Message> Messages => Set<Message>();
 
         public ChatContext(DbContextOptions<ChatContext> options) : base(options)
         {
