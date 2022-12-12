@@ -10,4 +10,14 @@ namespace Chat.Client
     {
         public string address;
     }
+
+    public class HistMessage
+    {
+        public int Id { get; set; }
+        public string User { get; set; } = null!;
+        public string Content { get; set; } = null!;
+        public DateTime? CreatedDate { get; set; } = DateTime.Now;
+    }
+
+
 }

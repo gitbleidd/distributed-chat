@@ -67,6 +67,8 @@
             this.Controls.Add(this.lboxChat);
             this.Controls.Add(this.tbInput);
             this.Controls.Add(this.btSend);
+            this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedSingle;
+            this.MaximizeBox = false;
             this.Name = "Main";
             this.Text = "Distributed Chat";
             this.ResumeLayout(false);

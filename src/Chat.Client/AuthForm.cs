@@ -2,7 +2,10 @@
 using System.Configuration;
 using Microsoft.AspNetCore.SignalR.Client;
 using Newtonsoft.Json;
+using System.Net.NetworkInformation;
 
+// Пасхалка
+// gaiboi
 namespace Chat.Client
 {
     public partial class AuthForm : Form
@@ -19,7 +22,8 @@ namespace Chat.Client
             {"NoServers", "No server is running"},
             {"ServerDisconnection", "You've been disconnected from server"},
             {"UnknownError", "Server is down"},
-            {"DispatcherError", "Couldn't connect to Dispatcher"}
+            {"DispatcherError", "Couldn't connect to Dispatcher"},
+            {"LoginLength", "Login length must be less than 20 symbols"}
         };
 
 
@@ -28,8 +32,14 @@ namespace Chat.Client
             InitializeComponent();
         }
 
-        private void btLogin_Click(object sender, EventArgs e)
+        private async void btLogin_Click(object sender, EventArgs e)
         {
+            if (tbUserInput.Text.Length > 20)
+            {
+                lbError.Text = Error["LoginLength"];
+                lbError.Visible = true;
+                return;
+            }
             string trimmedUserName = tbUserInput.Text.Trim();
             if (string.IsNullOrEmpty(trimmedUserName))
             {
@@ -39,21 +49,27 @@ namespace Chat.Client
             else
             {
                 // Попытка авторизации
-                TryAuth(trimmedUserName);
+                btLogin.Enabled = false;
+                await TryAuth(trimmedUserName);
+                connection = null;
+                btLogin.Enabled = true;
             }
         }
 
-        private async void TryAuth(string InputUserName)
+        private async Task TryAuth(string InputUserName)
         {
             int code;
             string body;
             HttpClient httpClient = new HttpClient();
+            httpClient.Timeout = TimeSpan.FromMilliseconds(2000);
             string json = $"{{\"login\": \"{InputUserName}\"}}";
             StringContent postContent = new StringContent(json, Encoding.UTF8, "application/json");
 
             try
             {
+                
                 using HttpResponseMessage response = await httpClient.PostAsync(DispatcherAddress + "/auth", postContent);
+                
 
                 // Получаем ответ
                 body = JsonConvert.DeserializeObject<Message>(await response.Content.ReadAsStringAsync()).address;
@@ -85,7 +101,7 @@ namespace Chat.Client
                 // Добавить возвращаемый объект подключения и закинуть как аргумент в открытие формы
                 try
                 {
-                    TryConnect(body);
+                    TryConnect(body, InputUserName);
                 }
                 catch(Exception ex)
                 {
@@ -118,13 +134,22 @@ namespace Chat.Client
             }
         }
 
-        private async void TryConnect(string address)
+        private async void TryConnect(string address, string InputUserName)
         {
             // Строка подключения к серверу чата
             connection = new HubConnectionBuilder()
                 .WithUrl($"http://{address}/ChatHub")
                 .Build();
+
+            var tokenSource = new CancellationTokenSource();
+            tokenSource.CancelAfter(TimeSpan.FromMilliseconds(1000));
+            CancellationToken ct = tokenSource.Token;
+
             await connection.StartAsync();
+
+            
+
+            await connection.InvokeAsync("Auth", InputUserName);
         }
 
         private void tbUserInput_TextChanged(object sender, EventArgs e)

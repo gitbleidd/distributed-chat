@@ -82,6 +82,8 @@
             this.Controls.Add(this.tbUserInput);
             this.Controls.Add(this.lbEnterUser);
             this.Controls.Add(this.btLogin);
+            this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedSingle;
+            this.MaximizeBox = false;
             this.Name = "AuthForm";
             this.Text = "Authorization";
             this.ResumeLayout(false);
