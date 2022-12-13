@@ -61,6 +61,7 @@ namespace Chat.Dispatcher.Controllers
 
                     if (info.ClientsNumber < minCount)
                     {
+                        minCount = info.ClientsNumber;
                         bestAddress = address.Value;
                     }
 

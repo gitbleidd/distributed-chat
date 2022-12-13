@@ -14,12 +14,14 @@ namespace Chat.Server.RabbitMq
         public static string queueName = null!;
         private static bool isQueueCreated = false;
         private static AsyncEventingBasicConsumer _consumer = null!;
+        private static Users _users;
 
 
         // TODO игнорировать себя!
-        public RabbitMqService(IConfiguration configuration, IServiceProvider provider, IHubContext<ChatHub> hubContext)
+        public RabbitMqService(IConfiguration configuration, IServiceProvider provider, IHubContext<ChatHub> hubContext, Users users)
         {
             _configuration = configuration;
+            _users = users;
 
             if (!isQueueCreated)
             {
@@ -43,7 +45,19 @@ namespace Chat.Server.RabbitMq
                     //connectionManager.GetHubContext<ChatHub>();
                     //await chatHub.SendMessage(chatMqMessage.Username, chatMqMessage.Content);
 
-                    await hubContext.Clients.All.SendAsync("ReceiveMessage", chatMqMessage.Username, chatMqMessage.Content);
+                    string sessionId = string.Empty;
+                    foreach (KeyValuePair<string, string> username in _users.Logins)
+                    {
+                        if (username.Value == chatMqMessage.Username)
+                        {
+                            sessionId = username.Key;
+                            break;
+                        }
+                    }
+
+                    if (string.IsNullOrEmpty(sessionId))
+                        await hubContext.Clients.All.SendAsync("ReceiveMessage", chatMqMessage.Username, chatMqMessage.Content);
+                        
                 };
 
                 channel.BasicConsume(queue: queueName,
