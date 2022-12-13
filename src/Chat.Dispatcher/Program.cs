@@ -9,6 +9,22 @@ namespace Chat.Dispatcher
             var builder = WebApplication.CreateBuilder(args);
             builder.Services.AddGrpc();
             //builder.Services.AddControllers();
+            
+            var serverAddressesFilePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "server_addresses.json");
+            var s = Utils.Deserialize<ServerAddresses>(serverAddressesFilePath);
+            var serverAddresses = new ServerAddresses();
+            if (s == null)
+            {
+                Console.WriteLine($"Error: couldn't read server_addresses file.");
+            }
+            else
+            {
+                foreach (var address in s.Addresses)
+                {
+                    serverAddresses.Addresses.TryAdd(address.Key, address.Value);
+                }
+            }
+            
             builder.Services.AddSingleton(new ServerAddresses());
 
             builder.Services.AddSingleton<AuthController, AuthController>();
@@ -22,7 +38,6 @@ namespace Chat.Dispatcher
             {
                 endpoints.MapControllers();
             });
-            //app.MapGet("/", () => "Hello World!").RequireHost($"*:25566");
 
             app.Run();
         }

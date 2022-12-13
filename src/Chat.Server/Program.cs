@@ -35,23 +35,9 @@ namespace Chat.Server
 
             string connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
             builder.Services.AddDbContext<ChatContext>(options => options.UseNpgsql(connectionString));
-            //builder.Services.AddDbContext<ChatContext>(options => options.UseInMemoryDatabase("distributed_chat"));
             builder.Services.AddSingleton(new Users());
 
-            //builder.Services.AddLazyResolution();
-
-            //builder.Services.AddScoped<ChatHub>();
             builder.Services.AddSingleton<RabbitMqService>();
-
-            //var buildServiceProvider = builder.Services.BuildServiceProvider();
-            //var someSingletonService = buildServiceProvider.GetRequiredService<RabbitMqService>();
-
-
-
-
-            //builder.Services.AddSingleton<ChatHub>();
-            //builder.Services.AddSingleton(new ChatHub());
-            //builder.Services.AddSingleton<IRabbitMqService, RabbitMqService>();
 
             var app = builder.Build();
 

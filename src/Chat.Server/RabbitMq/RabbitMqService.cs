@@ -39,12 +39,6 @@ namespace Chat.Server.RabbitMq
                         return;
                     }
 
-                    //Console.WriteLine($"\n---   {chatMqMessage.Username}:{chatMqMessage.Content}   ---\n");
-
-                    //var chatHub = provider.GetService<ChatHub>();
-                    //connectionManager.GetHubContext<ChatHub>();
-                    //await chatHub.SendMessage(chatMqMessage.Username, chatMqMessage.Content);
-
                     string sessionId = string.Empty;
                     foreach (KeyValuePair<string, string> username in _users.Logins)
                     {
@@ -56,7 +50,7 @@ namespace Chat.Server.RabbitMq
                     }
 
                     if (string.IsNullOrEmpty(sessionId))
-                        await hubContext.Clients.All.SendAsync("ReceiveMessage", chatMqMessage.Username, chatMqMessage.Content);
+                        await hubContext.Clients.AllExcept(sessionId).SendAsync("ReceiveMessage", chatMqMessage.Username, chatMqMessage.Content);
                         
                 };
 

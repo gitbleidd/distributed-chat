@@ -20,19 +20,6 @@ namespace Chat.Dispatcher.GrpcServices
             _serverAddresses = serverAddresses;
             _configuration = configuration;
             _useHamachi = _configuration.GetValue<bool>("UseHamachi");
-
-            var s = Utils.Deserialize<ServerAddresses>(_serverAddressesFilePath);
-            if (s == null)
-            {
-                Console.WriteLine($"Error: couldn't read server_addresses file.");
-            }
-            else
-            {
-                foreach (var address in s.Addresses)
-                {
-                    _serverAddresses.Addresses.TryAdd(address.Key, address.Value);
-                }
-            }
         }
 
         public override Task<Rpc.Core.PingReply> Ping(PingMessage request, ServerCallContext context)
