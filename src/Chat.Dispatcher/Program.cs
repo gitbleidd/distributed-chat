@@ -25,7 +25,7 @@ namespace Chat.Dispatcher
                 }
             }
             
-            builder.Services.AddSingleton(new ServerAddresses());
+            builder.Services.AddSingleton(serverAddresses);
 
             builder.Services.AddSingleton<AuthController, AuthController>();
             builder.Services.AddMvc().AddControllersAsServices();

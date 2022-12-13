@@ -40,6 +40,7 @@ namespace Chat.Client
             else
             {
                 // Trying to get server address
+                lbError.Visible = false;
                 btLogin.Enabled = false;
                 await TryAuth(trimmedUserName);
                 btLogin.Enabled = true;
@@ -75,7 +76,6 @@ namespace Chat.Client
                     break;
                 // Status code and address is non empty string - Received server address
                 case 200:
-                    
                     Hide();
 
                     // Open chat form

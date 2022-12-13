@@ -77,7 +77,11 @@ namespace Chat.Dispatcher.Controllers
             // Remove shutdown server addresses
             foreach (var key in addressToRemove)
             {
-                _serverAddresses.Addresses.Remove(key);
+                try
+                {
+                    _serverAddresses.Addresses.Remove(key);
+                }
+                catch (Exception) {}
             }
 
             // Save new list of addresses to file
