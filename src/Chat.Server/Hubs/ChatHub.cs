@@ -1,5 +1,6 @@
 ﻿using Chat.Server.Data;
 using Chat.Server.Data.Entities;
+using Chat.Server.RabbitMq;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 
@@ -9,11 +10,18 @@ namespace Chat.Server.Hubs
     {
         private readonly ChatContext _context;
         private readonly Users _users;
+        //private readonly Lazy<RabbitMqService> _rabbitMq;
+        private readonly RabbitMqService _rabbitMq;
 
-        public ChatHub(ChatContext context, Users users)
+        //public ChatHub(ChatContext context, Users users, IServiceProvider provider)
+        public ChatHub(ChatContext context, Users users, RabbitMqService rabbitMq)
         {
             _context = context;
             _users = users;
+            //_rabbitMq = rabbitMq;
+            //_rabbitMq = new Lazy<RabbitMqService>(provider.GetService<RabbitMqService>()!);
+            //_rabbitMq = new Lazy<RabbitMqService>(rabbitMq);
+            _rabbitMq = rabbitMq;
         }
 
         public async Task SendMessage(string user, string message)
@@ -24,6 +32,7 @@ namespace Chat.Server.Hubs
 
             // 2. Send to other servers via RabbitMQ
             // TODO
+            _rabbitMq.SendMessage(new ChatMqMessage { Username = user, Content = message });
 
             // 3. Send to other clients
             await Clients.All.SendAsync("ReceiveMessage", user, message);

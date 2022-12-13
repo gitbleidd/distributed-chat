@@ -5,11 +5,25 @@ using Chat.Server.Data;
 using Microsoft.AspNetCore.Hosting.Server;
 using Microsoft.AspNetCore.Hosting.Server.Features;
 using Chat.Server;
+using Chat.Server.RabbitMq;
+using RabbitMQ.Client.Events;
+using RabbitMQ.Client;
 
 namespace Chat.Server
 {
     public class Program
     {
+        //private static string _hostname = null!;
+        //private static int _port;
+        //private static string _username = null!;
+        //private static string _password = null!;
+        //private static ConnectionFactory _factory = null!;
+        //private static RabbitMQ.Client.IConnection _connection = null!;
+        //private static IModel _channel = null!;
+        //private static AsyncEventingBasicConsumer _consumer = null!;
+        //private static string _queueName = null!;
+        //private static bool isQueueCreated = false;
+
         public static async Task Main(string[] args)
         {
             var builder = WebApplication.CreateBuilder(args);
@@ -24,7 +38,57 @@ namespace Chat.Server
             //builder.Services.AddDbContext<ChatContext>(options => options.UseInMemoryDatabase("distributed_chat"));
             builder.Services.AddSingleton(new Users());
 
+            //builder.Services.AddLazyResolution();
+
+            //builder.Services.AddScoped<ChatHub>();
+            builder.Services.AddSingleton<RabbitMqService>();
+
+            //var buildServiceProvider = builder.Services.BuildServiceProvider();
+            //var someSingletonService = buildServiceProvider.GetRequiredService<RabbitMqService>();
+
+
+
+
+            //builder.Services.AddSingleton<ChatHub>();
+            //builder.Services.AddSingleton(new ChatHub());
+            //builder.Services.AddSingleton<IRabbitMqService, RabbitMqService>();
+
             var app = builder.Build();
+
+            #region RabbitMq
+            var configuration = app.Configuration;
+            var _hostname = configuration.GetValue<string>("RabbitMq:Hostname");
+            var _port = configuration.GetValue<int>("RabbitMq:Port");
+            var _username = configuration.GetValue<string>("RabbitMq:Username");
+            var _password = configuration.GetValue<string>("RabbitMq:Password");
+
+            var _factory = new ConnectionFactory()
+            {
+                HostName = _hostname,
+                Port = _port,
+                UserName = _username,
+                Password = _password,
+                DispatchConsumersAsync = true,
+            };
+
+            var _connection = _factory.CreateConnection();
+            var _channel = _connection.CreateModel();
+
+            string _queueName = (Guid.NewGuid()).ToString();
+            _channel.QueueDeclare(queue: _queueName,
+                               durable: true,
+                               exclusive: true,
+                               autoDelete: true,
+                               arguments: null);
+
+            _channel.QueueBind(queue: _queueName,
+              exchange: "amq.fanout",
+              routingKey: "");
+            #endregion
+
+            RabbitMqService.queueName = _queueName;
+            RabbitMqService.channel = _channel;
+
             app.MapGrpcService<GrpcServices.InteractionService>();
             app.UseRouting();
 
@@ -33,6 +97,8 @@ namespace Chat.Server
             {
                 endpoints.MapHub<ChatHub>(chatHubPath);
             });
+
+            var chatHub = app.Services.GetService<RabbitMqService>();
 
             app.Start();
 
@@ -89,6 +155,7 @@ namespace Chat.Server
                     );
 
                     await channel.ShutdownAsync().WaitAsync(TimeSpan.FromSeconds(5.0));
+                    Console.WriteLine($"Ping - Ok!");
                     return true;
                 }
                 catch (Exception ex)
@@ -110,6 +177,24 @@ namespace Chat.Server
             if (portColonIndex == -1) return string.Empty;
 
             return url[(portColonIndex + 1)..];
+        }
+    }
+
+    public static class ServicesExtention
+    {
+        public static IServiceCollection AddLazyResolution(this IServiceCollection services)
+        {
+            return services.AddTransient(
+                typeof(Lazy<>),
+                typeof(LazilyResolved<>));
+        }
+
+        private class LazilyResolved<T> : Lazy<T>
+        {
+            public LazilyResolved(IServiceProvider serviceProvider)
+                : base(serviceProvider.GetRequiredService<T>)
+            {
+            }
         }
     }
 }

@@ -6,8 +6,8 @@ namespace Chat.Client
     {
         private string _address;
         private string _userName;
-        public string ReturnStatus;
-        HubConnection _connection;
+        public string ReturnStatus = null!;
+        HubConnection _connection = null!;
 
         public Main(string userName, string address)
         {
@@ -90,7 +90,6 @@ namespace Chat.Client
                 {
                     Console.WriteLine();
                 }
-                //SetComponentsEnableability(false);
 
                 MessageBox.Show("Disconnected from the server\nTrying to reconnect...");
 
@@ -241,7 +240,7 @@ namespace Chat.Client
             SetEvents(_connection);
 
             var tokenSource = new CancellationTokenSource();
-            tokenSource.CancelAfter(TimeSpan.FromMilliseconds(1000));
+            tokenSource.CancelAfter(TimeSpan.FromMilliseconds(2000));
             CancellationToken ct = tokenSource.Token;
 
             for (var i = 0; i < 2; i++)
