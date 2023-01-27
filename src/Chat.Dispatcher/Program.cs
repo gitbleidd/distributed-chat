@@ -1,4 +1,5 @@
 using Chat.Dispatcher.Controllers;
+using static Chat.Dispatcher.SerializeUtils;
 
 namespace Chat.Dispatcher
 {
@@ -7,26 +8,12 @@ namespace Chat.Dispatcher
         public static void Main(string[] args)
         {
             var builder = WebApplication.CreateBuilder(args);
+            builder.Logging.ClearProviders();
+            builder.Logging.AddConsole();
+            
             builder.Services.AddGrpc();
-            //builder.Services.AddControllers();
             
-            var serverAddressesFilePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "server_addresses.json");
-            var s = Utils.Deserialize<ServerAddresses>(serverAddressesFilePath);
-            var serverAddresses = new ServerAddresses();
-            if (s == null)
-            {
-                Console.WriteLine($"Error: couldn't read server_addresses file.");
-            }
-            else
-            {
-                foreach (var address in s.Addresses)
-                {
-                    serverAddresses.Addresses.TryAdd(address.Key, address.Value);
-                }
-            }
-            
-            builder.Services.AddSingleton(serverAddresses);
-
+            builder.Services.AddSingleton(GetChatServerAddresses());
             builder.Services.AddSingleton<AuthController, AuthController>();
             builder.Services.AddMvc().AddControllersAsServices();
 
@@ -40,6 +27,26 @@ namespace Chat.Dispatcher
             });
 
             app.Run();
+        }
+
+        private static ChatServerAddresses GetChatServerAddresses()
+        {
+            const string serverAddressesFileName = Constants.ServerAddressesFileName;
+            string serverAddressesFilePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, serverAddressesFileName);
+            var configServerAddresses = TryDeserializeFile<ChatServerAddresses>(serverAddressesFilePath);
+            
+            var result = new ChatServerAddresses();
+            if (configServerAddresses == null)
+            {
+                Console.WriteLine($"Error: couldn't read {serverAddressesFileName} file.");
+                return result;
+            }
+            
+            foreach (var address in configServerAddresses.Addresses)
+            {
+                result.Addresses.TryAdd(address.Key, address.Value);
+            }
+            return result;
         }
     }
 }

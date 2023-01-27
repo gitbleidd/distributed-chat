@@ -1,7 +1,10 @@
-﻿namespace Chat.Dispatcher
+﻿using System.ComponentModel.DataAnnotations;
+
+namespace Chat.Dispatcher
 {
     public class AuthRequest
     {
-        public string Login { get; set; }
+        [Required]
+        public string Login { get; } = null!;
     }
 }

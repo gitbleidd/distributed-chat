@@ -2,6 +2,7 @@
 using Grpc.Net.Client;
 using Microsoft.AspNetCore.Mvc;
 using System.Text;
+using static Chat.Dispatcher.SerializeUtils;
 
 namespace Chat.Dispatcher.Controllers
 {
@@ -9,40 +10,47 @@ namespace Chat.Dispatcher.Controllers
     [ApiController]
     public class AuthController : ControllerBase
     {
-        private readonly ServerAddresses _serverAddresses;
+        private readonly ChatServerAddresses _serverAddresses;
         private readonly string _serverAddressesFilePath;
 
-        public AuthController(ServerAddresses serverAddresses)
+        public AuthController(ChatServerAddresses serverAddresses)
         {
             _serverAddresses = serverAddresses;
-            _serverAddressesFilePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "server_addresses.json");
+            _serverAddressesFilePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, Constants.ServerAddressesFileName);
         }
 
+        /// <summary>
+        /// Returns all running servers addresses.
+        /// </summary>
         [HttpGet]
-        public async Task<ActionResult<string>> GetAsync()
+        public ActionResult<string> GetAddresses()
         {
-            //await PostAsync(new AuthRequest { Login = "fasdf" });
-
-            var sb = new StringBuilder();
+            var sb = new StringBuilder("(✿◕‿◕✿)");
             foreach (var item in _serverAddresses.Addresses)
             {
                 sb.AppendLine($"{item.Key}: (HTTP/1.1 {item.Value.Http1Port}), (HTTP/2.0 {item.Value.Http2Port})");
             }
 
-            return Ok("(✿◕‿◕✿)\n" + sb.ToString());
+            return Ok(sb.ToString());
         }
 
-        
+        /// <summary>
+        /// Returns server address for non-authed user or
+        /// returns error if user with this name already exists or
+        /// returns empty string if couldn't find any server.
+        /// </summary>
+        /// <param name="authRequest"></param>
+        /// <returns></returns>
         [HttpPost]
         public async Task<ActionResult<object>> PostAsync([FromBody] AuthRequest authRequest)
         {
             // Asking all servers - has this user been already authed.
-            // Also choosing server with minimal users count
+            // Also choosing server with minimal user count.
 
             int minCount = int.MaxValue;
-            AddressInfo? bestAddress = null;
+            ChatServerAddressInfo? bestAddress = null;
 
-            var addressToRemove = new List<string>();
+            var addressesToRemove = new List<string>();
 
             foreach (var address in _serverAddresses.Addresses)
             {
@@ -69,23 +77,18 @@ namespace Chat.Dispatcher.Controllers
                 }
                 catch (RpcException ex) when (ex.StatusCode == Grpc.Core.StatusCode.DeadlineExceeded)
                 {
-                    addressToRemove.Add(address.Key);
+                    addressesToRemove.Add(address.Key);
                 }
-                catch (Exception ex) { }
             }
 
             // Remove shutdown server addresses
-            foreach (var key in addressToRemove)
+            foreach (var key in addressesToRemove)
             {
-                try
-                {
-                    _serverAddresses.Addresses.Remove(key);
-                }
-                catch (Exception) {}
+                _serverAddresses.Addresses.Remove(key);
             }
 
             // Save new list of addresses to file
-            if (!Utils.Serialize(_serverAddresses, _serverAddressesFilePath))
+            if (!SerializeToFile(_serverAddresses, _serverAddressesFilePath))
             {
                 Console.WriteLine("Error: Couldn't save server_addresses file");
             }

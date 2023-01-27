@@ -4,19 +4,20 @@ using Newtonsoft.Json;
 using System.Net;
 using System.Net.Sockets;
 using System.Net.NetworkInformation;
+using static Chat.Dispatcher.SerializeUtils;
 
 namespace Chat.Dispatcher.GrpcServices
 {
     public class InteractionService : Rpc.Core.ServiceInteraction.ServiceInteractionBase
     {
-        private readonly ServerAddresses _serverAddresses;
+        private readonly ChatServerAddresses _serverAddresses;
         private readonly string _serverAddressesFilePath;
         private readonly IConfiguration _configuration;
         private readonly bool _useHamachi;
 
-        public InteractionService(ServerAddresses serverAddresses, IConfiguration configuration)
+        public InteractionService(ChatServerAddresses serverAddresses, IConfiguration configuration)
         {
-            _serverAddressesFilePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "server_addresses.json");
+            _serverAddressesFilePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, Constants.ServerAddressesFileName);
             _serverAddresses = serverAddresses;
             _configuration = configuration;
             _useHamachi = _configuration.GetValue<bool>("UseHamachi");
@@ -32,16 +33,16 @@ namespace Chat.Dispatcher.GrpcServices
             int portColumnIndex = fullAddress.IndexOf(':');
             string address = fullAddress[..portColumnIndex];
 
-            if (address == "127.0.0.1" || address == "localhost")
+            if (address is "127.0.0.1" or "localhost")
             {
                 string localAddress;
                 if (_useHamachi)
                 {
-                    localAddress = Utils.GetLocalAddressFromAdapter("Hamachi");
+                    localAddress = AddressUtils.GetLocalAddressFromAdapter("Hamachi");
                 }
                 else
                 {
-                    localAddress = Utils.GetLocalAddress();
+                    localAddress = AddressUtils.GetLocalAddress();
                 }
 
                 if (string.IsNullOrEmpty(localAddress))
@@ -52,7 +53,7 @@ namespace Chat.Dispatcher.GrpcServices
 
             string grpcPort = fullAddress[(portColumnIndex + 1)..];
 
-            var addressInfo = new AddressInfo { 
+            var addressInfo = new ChatServerAddressInfo { 
                 Ip = address, 
                 Http2Port = request.Port1, 
                 Http1Port = request.Port2,
@@ -61,7 +62,7 @@ namespace Chat.Dispatcher.GrpcServices
             _serverAddresses.Addresses.TryAdd($"{address}:{request.Port1}:{request.Port2}", addressInfo);
 
             // 2. Save address to file
-            if (!Utils.Serialize(_serverAddresses, _serverAddressesFilePath))
+            if (!SerializeToFile(_serverAddresses, _serverAddressesFilePath))
             {
                 Console.WriteLine("Error: Couldn't save server_addresses file");
             }
