@@ -1,6 +1,6 @@
 ﻿namespace Chat.Server.Data
 {
-    internal class Constants
+    internal static class Constants
     {
         public const string SchemaName = "content";
     }

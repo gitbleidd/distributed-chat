@@ -6,7 +6,7 @@ namespace Chat.Server.GrpcServices
 {
     public class InteractionService : Rpc.Core.ServiceInteraction.ServiceInteractionBase
     {
-        public readonly Users _users;
+        private readonly Users _users; // Current server list of users
         public InteractionService(Users users)
         {
             _users = users;
@@ -17,19 +17,12 @@ namespace Chat.Server.GrpcServices
             return Task.FromResult(new PingReply { IsSuccessful = true });
         }
 
+        /// <summary>
+        /// Returns is user connect to current server and users count. 
+        /// </summary>
         public override Task<GetConnectionInfoReply> GetConnectionInfo(LoginMessage request, ServerCallContext context)
         {
-            // TODO в словаре храню в качестве ключа connection ID, а не имя пользователя.
-
-            bool isConnected = false;
-            foreach (var user in _users.Logins)
-            {
-                if (user.Value == request.Login)
-                {
-                    isConnected = true;
-                    break;
-                }
-            }
+            bool isConnected = _users.Logins.Any(user => user.Value == request.Login);
 
             var result = new GetConnectionInfoReply
             {
