@@ -10,11 +10,13 @@ namespace Chat.Dispatcher.Controllers
     [ApiController]
     public class AuthController : ControllerBase
     {
+        private readonly ILogger<AuthController> _logger;
         private readonly ChatServerAddresses _serverAddresses;
         private readonly string _serverAddressesFilePath;
 
-        public AuthController(ChatServerAddresses serverAddresses)
+        public AuthController(ILogger<AuthController> logger, ChatServerAddresses serverAddresses)
         {
+            _logger = logger;
             _serverAddresses = serverAddresses;
             _serverAddressesFilePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, Constants.ServerAddressesFileName);
         }
@@ -36,8 +38,8 @@ namespace Chat.Dispatcher.Controllers
 
         /// <summary>
         /// Returns server address for non-authed user or
-        /// returns error if user with this name already exists or
-        /// returns empty string if couldn't find any server.
+        /// error if user with this name already exists or
+        /// empty string if couldn't find any server.
         /// </summary>
         /// <param name="authRequest"></param>
         /// <returns></returns>
@@ -90,7 +92,7 @@ namespace Chat.Dispatcher.Controllers
             // Save new list of addresses to file
             if (!SerializeToFile(_serverAddresses, _serverAddressesFilePath))
             {
-                Console.WriteLine("Error: Couldn't save server_addresses file");
+                _logger.LogError($"Couldn't save {Constants.ServerAddressesFileName} file");
             }
 
             // All servers are shutdown

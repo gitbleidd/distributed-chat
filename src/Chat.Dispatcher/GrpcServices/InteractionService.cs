@@ -10,17 +10,19 @@ namespace Chat.Dispatcher.GrpcServices
 {
     public class InteractionService : Rpc.Core.ServiceInteraction.ServiceInteractionBase
     {
+        private readonly ILogger<InteractionService> _logger;
         private readonly ChatServerAddresses _serverAddresses;
         private readonly string _serverAddressesFilePath;
         private readonly IConfiguration _configuration;
         private readonly bool _useHamachi;
 
-        public InteractionService(ChatServerAddresses serverAddresses, IConfiguration configuration)
+        public InteractionService(ILogger<InteractionService> logger, ChatServerAddresses serverAddresses, IConfiguration configuration)
         {
-            _serverAddressesFilePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, Constants.ServerAddressesFileName);
+            _logger = logger;
             _serverAddresses = serverAddresses;
             _configuration = configuration;
             _useHamachi = _configuration.GetValue<bool>("UseHamachi");
+            _serverAddressesFilePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, Constants.ServerAddressesFileName);
         }
 
         public override Task<Rpc.Core.PingReply> Ping(PingMessage request, ServerCallContext context)
@@ -61,10 +63,10 @@ namespace Chat.Dispatcher.GrpcServices
 
             _serverAddresses.Addresses.TryAdd($"{address}:{request.Port1}:{request.Port2}", addressInfo);
 
-            // 2. Save address to file
+            // 2. Save new address to file
             if (!SerializeToFile(_serverAddresses, _serverAddressesFilePath))
             {
-                Console.WriteLine("Error: Couldn't save server_addresses file");
+                _logger.LogError($"Couldn't save {Constants.ServerAddressesFileName} file");
             }
 
             return Task.FromResult(new Rpc.Core.PingReply { IsSuccessful = true });
