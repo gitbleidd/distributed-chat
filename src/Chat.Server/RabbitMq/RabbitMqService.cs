@@ -1,77 +1,82 @@
-﻿using Chat.Server.Hubs;
-using Microsoft.AspNetCore.SignalR;
+﻿using System.Text;
+using Chat.Server.Hubs;
+using Newtonsoft.Json;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
-using System.Text;
-using System.Text.Json;
+using Microsoft.AspNetCore.SignalR;
 
 namespace Chat.Server.RabbitMq
 {
-    public class RabbitMqService : IRabbitMqService
+    public class RabbitMqService
     {
-        private IConfiguration _configuration;
-        public static IModel channel = null!;
-        public static string queueName = null!;
-        private static bool isQueueCreated = false;
-        private static AsyncEventingBasicConsumer _consumer = null!;
-        private static Users _users;
+        private readonly ConnectionFactory _factory;
+        private readonly IConnection _connection;
+        private static AsyncEventingBasicConsumer _consumer;
+        private readonly Users _users;
+        public IModel Channel { get; }
 
-
-        // TODO игнорировать себя!
-        public RabbitMqService(IConfiguration configuration, IServiceProvider provider, IHubContext<ChatHub> hubContext, Users users)
+        public RabbitMqService(IConfiguration configuration, IHubContext<ChatHub> hubContext, Users users)
         {
-            _configuration = configuration;
             _users = users;
+            
+            var hostname = configuration.GetValue<string>("RabbitMq:Hostname");
+            var port = configuration.GetValue<int>("RabbitMq:Port");
+            var username = configuration.GetValue<string>("RabbitMq:Username");
+            var password = configuration.GetValue<string>("RabbitMq:Password");
 
-            if (!isQueueCreated)
+            _factory = new ConnectionFactory()
             {
-                _consumer = new AsyncEventingBasicConsumer(channel);
+                HostName = hostname,
+                Port = port,
+                UserName = username,
+                Password = password,
+                DispatchConsumersAsync = true,
+            };
 
-                _consumer.Received += async (model, ea) =>
+            _connection = _factory.CreateConnection();
+            Channel = _connection.CreateModel();
+
+            string queueName = (Guid.NewGuid()).ToString();
+            Channel.QueueDeclare(queue: queueName,
+                durable: true,
+                exclusive: true,
+                autoDelete: true,
+                arguments: null);
+
+            Channel.QueueBind(queue: queueName,
+                exchange: "amq.fanout",
+                routingKey: "");
+            
+            _consumer = new AsyncEventingBasicConsumer(Channel);
+
+            _consumer.Received += async (model, ea) =>
+            {
+                var body = ea.Body.ToArray();
+                var message = Encoding.UTF8.GetString(body);
+
+                var chatMqMessage = JsonConvert.DeserializeObject<ChatMqMessage>(message);
+                if (chatMqMessage == null) 
+                    return;
+
+                string sessionId = string.Empty;
+                foreach (KeyValuePair<string, string> serverUsername in _users.Logins)
                 {
-                    // Read message (encode, deserialize)
-                    var body = ea.Body.ToArray();
-                    var message = Encoding.UTF8.GetString(body);
-
-                    var chatMqMessage = JsonSerializer.Deserialize<ChatMqMessage>(message);
-                    if (chatMqMessage == null)
+                    if (serverUsername.Value == chatMqMessage.Username)
                     {
-                        return;
+                        sessionId = serverUsername.Key;
+                        break;
                     }
+                }
 
-                    string sessionId = string.Empty;
-                    foreach (KeyValuePair<string, string> username in _users.Logins)
-                    {
-                        if (username.Value == chatMqMessage.Username)
-                        {
-                            sessionId = username.Key;
-                            break;
-                        }
-                    }
-
-                    if (string.IsNullOrEmpty(sessionId))
-                        await hubContext.Clients.AllExcept(sessionId).SendAsync("ReceiveMessage", chatMqMessage.Username, chatMqMessage.Content);
+                if (string.IsNullOrEmpty(sessionId))
+                    await hubContext.Clients.AllExcept(sessionId).SendAsync("ReceiveMessage", chatMqMessage.Username, chatMqMessage.Content);
                         
-                };
+            };
 
-                channel.BasicConsume(queue: queueName,
-                                     autoAck: true,
-                                     consumer: _consumer);
-
-                isQueueCreated = true;
-            }
-        }
-
-        public void SendMessage(ChatMqMessage message)
-        {
-            var serializedMessage = JsonSerializer.Serialize(message);
-            var body = Encoding.UTF8.GetBytes(serializedMessage);
-
-            channel.BasicPublish(exchange: "amq.fanout",
-                           routingKey: "",
-                           basicProperties: null,
-                           body: body);
+            Channel.BasicConsume(queue: queueName,
+                autoAck: true,
+                consumer: _consumer);
         }
     }
-        
 }
+

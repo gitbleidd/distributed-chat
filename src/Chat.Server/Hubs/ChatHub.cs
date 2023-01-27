@@ -10,17 +10,12 @@ namespace Chat.Server.Hubs
     {
         private readonly ChatContext _context;
         private readonly Users _users;
-        //private readonly Lazy<RabbitMqService> _rabbitMq;
-        private readonly RabbitMqService _rabbitMq;
+        private readonly RabbitMqTransportService _rabbitMq;
 
-        //public ChatHub(ChatContext context, Users users, IServiceProvider provider)
-        public ChatHub(ChatContext context, Users users, RabbitMqService rabbitMq)
+        public ChatHub(ChatContext context, Users users, RabbitMqTransportService rabbitMq)
         {
             _context = context;
             _users = users;
-            //_rabbitMq = rabbitMq;
-            //_rabbitMq = new Lazy<RabbitMqService>(provider.GetService<RabbitMqService>()!);
-            //_rabbitMq = new Lazy<RabbitMqService>(rabbitMq);
             _rabbitMq = rabbitMq;
         }
 
@@ -31,7 +26,6 @@ namespace Chat.Server.Hubs
             await _context.SaveChangesAsync();
 
             // 2. Send to other servers via RabbitMQ
-            // TODO
             _rabbitMq.SendMessage(new ChatMqMessage { Username = user, Content = message });
 
             // 3. Send to other clients
@@ -41,7 +35,6 @@ namespace Chat.Server.Hubs
         public async Task GetHistory()
         {
             var messages = await _context.Messages.OrderByDescending(p => p.Id).Take(5).ToListAsync();
-
             await Clients.Caller.SendAsync("ReceiveHistory", messages);
         }
 

@@ -38,43 +38,9 @@ namespace Chat.Server
             builder.Services.AddDbContext<ChatContext>(options => options.UseNpgsql(connectionString));
             builder.Services.AddSingleton(new Users());
 
-            builder.Services.AddSingleton<RabbitMqService>();
+            builder.Services.AddSingleton<RabbitMqTransportService>();
 
             var app = builder.Build();
-
-            #region RabbitMq
-            var configuration = app.Configuration;
-            var _hostname = configuration.GetValue<string>("RabbitMq:Hostname");
-            var _port = configuration.GetValue<int>("RabbitMq:Port");
-            var _username = configuration.GetValue<string>("RabbitMq:Username");
-            var _password = configuration.GetValue<string>("RabbitMq:Password");
-
-            var _factory = new ConnectionFactory()
-            {
-                HostName = _hostname,
-                Port = _port,
-                UserName = _username,
-                Password = _password,
-                DispatchConsumersAsync = true,
-            };
-
-            var _connection = _factory.CreateConnection();
-            var _channel = _connection.CreateModel();
-
-            string _queueName = (Guid.NewGuid()).ToString();
-            _channel.QueueDeclare(queue: _queueName,
-                               durable: true,
-                               exclusive: true,
-                               autoDelete: true,
-                               arguments: null);
-
-            _channel.QueueBind(queue: _queueName,
-              exchange: "amq.fanout",
-              routingKey: "");
-            #endregion
-
-            RabbitMqService.queueName = _queueName;
-            RabbitMqService.channel = _channel;
 
             app.MapGrpcService<GrpcServices.InteractionService>();
             app.UseRouting();
@@ -85,7 +51,7 @@ namespace Chat.Server
                 endpoints.MapHub<ChatHub>(chatHubPath);
             });
 
-            var chatHub = app.Services.GetService<RabbitMqService>();
+            var chatHub = app.Services.GetService<RabbitMqTransportService>();
 
             app.Start();
 
