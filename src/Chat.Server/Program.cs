@@ -13,20 +13,21 @@ namespace Chat.Server
 {
     public class Program
     {
-        //private static string _hostname = null!;
-        //private static int _port;
-        //private static string _username = null!;
-        //private static string _password = null!;
-        //private static ConnectionFactory _factory = null!;
-        //private static RabbitMQ.Client.IConnection _connection = null!;
-        //private static IModel _channel = null!;
-        //private static AsyncEventingBasicConsumer _consumer = null!;
-        //private static string _queueName = null!;
-        //private static bool isQueueCreated = false;
+        private static readonly ILogger<Program> _logger;
+        static Program()
+        {
+            var loggerFactory = LoggerFactory.Create(builder =>
+            {
+                builder.AddConsole();                
+            });
+            _logger = loggerFactory.CreateLogger<Program>();
+        }
 
         public static async Task Main(string[] args)
         {
             var builder = WebApplication.CreateBuilder(args);
+            builder.Logging.ClearProviders();
+            builder.Logging.AddConsole();
 
             // Listen gRPC from chat servers and SignalR from clients
             //builder.Services.AddLogging();
@@ -88,99 +89,24 @@ namespace Chat.Server
 
             app.Start();
 
-
-            // Ping dispatcher to send ports
-            var server = app.Services.GetService<IServer>()!;
-            var addressFeature = server.Features.Get<IServerAddressesFeature>()!;
-
-            string port1 = string.Empty; 
-            string port2 = string.Empty;
-            if (addressFeature.Addresses.Count == 2)
+            // Sending server http1 and http2 ports to dispatcher or else
+            // shutting down server.
+            string dispatcherAddress = builder.Configuration["DispatcherAddress"];
+            var ports = ServerInitUtils.GetServerPorts(app.Services);
+            if (ports.Count != 2)
             {
-                port1 = GetPortFromUrl(addressFeature.Addresses.ElementAt(0));
-                port2 = GetPortFromUrl(addressFeature.Addresses.ElementAt(1));
-            }
-
-            if (string.IsNullOrEmpty(port1) || string.IsNullOrEmpty(port2))
-            {
-                Console.WriteLine("Couldn't get two ports (HTTP/1.1, HTTP/2.0) kestrel is running on");
+                _logger.LogError("Couldn't get two ports (HTTP/1.1, HTTP/2.0) kestrel is running on");
                 await app.StopAsync();
                 Console.ReadKey();
-                return;
             }
-
-            var dispatcherAddress = builder.Configuration["DispatcherAddress"];
-            if (!await PingDispatcher(dispatcherAddress, port1, port2))
+            if (!await ServerInitUtils.SendPortsToDispatcher(_logger, dispatcherAddress, ports.First(), ports.Skip(1).First()))
             {
-                Console.WriteLine("Error: couldn't connect to dispatcher");
+                _logger.LogError("Couldn't connect to dispatcher");
+                await app.StopAsync();
                 Console.ReadKey();
-                return;
             }
             
-            app.WaitForShutdown();
-        }
-
-        public static async Task<bool> PingDispatcher(string dispatcherAddress, string port1, string port2)
-        {
-            using var channel = GrpcChannel.ForAddress(dispatcherAddress);
-            var client = new Rpc.Core.ServiceInteraction.ServiceInteractionClient(channel);
-
-            int attemptCount = 3;
-            for (int i = 0; i < attemptCount; i++)
-            {
-                Console.WriteLine($"Ping attempt ({i}).");
-                try
-                {
-                    var pingResult = await client.PingAsync(
-                        new Rpc.Core.PingMessage 
-                        { 
-                            Port1 = port1, 
-                            Port2 = port2
-                        }, 
-                        deadline: DateTime.UtcNow.AddSeconds(5)
-                    );
-
-                    await channel.ShutdownAsync().WaitAsync(TimeSpan.FromSeconds(5.0));
-                    Console.WriteLine($"Ping - Ok!");
-                    return true;
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine($"Erro: {ex.Message}");
-                    Thread.Sleep(5000);
-                }
-            }
-
-            return false;
-        }
-
-        public static string GetPortFromUrl(string url)
-        {
-            int firstColonIndex = url.IndexOf(':');
-            if (firstColonIndex == -1) return string.Empty;
-
-            int portColonIndex = url.IndexOf(':', firstColonIndex + 1);
-            if (portColonIndex == -1) return string.Empty;
-
-            return url[(portColonIndex + 1)..];
-        }
-    }
-
-    public static class ServicesExtention
-    {
-        public static IServiceCollection AddLazyResolution(this IServiceCollection services)
-        {
-            return services.AddTransient(
-                typeof(Lazy<>),
-                typeof(LazilyResolved<>));
-        }
-
-        private class LazilyResolved<T> : Lazy<T>
-        {
-            public LazilyResolved(IServiceProvider serviceProvider)
-                : base(serviceProvider.GetRequiredService<T>)
-            {
-            }
+            await app.WaitForShutdownAsync();
         }
     }
 }
