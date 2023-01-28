@@ -13,7 +13,7 @@ namespace Chat.Server
             
             for (int i = 0; i < attemptCount; i++)
             {
-                logger.LogInformation($"Ping attempt ({i}).");
+                logger.LogInformation($"Send ports to Dispatcher attempt: ({i})");
                 try
                 {
                     var pingResult = await client.PingAsync(
@@ -42,7 +42,7 @@ namespace Chat.Server
         {
             IServer server = services.GetService<IServer>()!;
             var addressFeature = server.Features.Get<IServerAddressesFeature>()!;
-            return addressFeature.Addresses.ToList();
+            return addressFeature.Addresses.Select(GetPortFromUrl).ToList();
         }
 
         private static string GetPortFromUrl(string url)

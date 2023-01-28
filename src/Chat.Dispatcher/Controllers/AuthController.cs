@@ -44,7 +44,7 @@ namespace Chat.Dispatcher.Controllers
         /// <param name="authRequest"></param>
         /// <returns></returns>
         [HttpPost]
-        public async Task<ActionResult<object>> PostAsync([FromBody] AuthRequest authRequest)
+        public async Task<ActionResult> PostAsync([FromBody] AuthRequest authRequest)
         {
             // Asking all servers - has this user been already authed.
             // Also choosing server with minimal user count.

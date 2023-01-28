@@ -1,13 +1,8 @@
-using Grpc.Net.Client;
 using Chat.Server.Hubs;
 using Microsoft.EntityFrameworkCore;
 using Chat.Server.Data;
-using Microsoft.AspNetCore.Hosting.Server;
-using Microsoft.AspNetCore.Hosting.Server.Features;
-using Chat.Server;
 using Chat.Server.RabbitMq;
-using RabbitMQ.Client.Events;
-using RabbitMQ.Client;
+
 
 namespace Chat.Server
 {
@@ -30,7 +25,6 @@ namespace Chat.Server
             builder.Logging.AddConsole();
 
             // Listen gRPC from chat servers and SignalR from clients
-            //builder.Services.AddLogging();
             builder.Services.AddGrpc();
             builder.Services.AddSignalR((o) => o.EnableDetailedErrors = true);
 
@@ -38,7 +32,8 @@ namespace Chat.Server
             builder.Services.AddDbContext<ChatContext>(options => options.UseNpgsql(connectionString));
             builder.Services.AddSingleton(new Users());
 
-            builder.Services.AddSingleton<RabbitMqTransportService>();
+            builder.Services.AddSingleton<RabbitMqService>();
+            builder.Services.AddSingleton<RabbitMqConsumerService>();
 
             var app = builder.Build();
 
@@ -50,10 +45,9 @@ namespace Chat.Server
             {
                 endpoints.MapHub<ChatHub>(chatHubPath);
             });
-
-            var chatHub = app.Services.GetService<RabbitMqTransportService>();
-
+            
             app.Start();
+            var rabbitMqService = app.Services.GetService<RabbitMqService>();
 
             // Sending server http1 and http2 ports to dispatcher or else
             // shutting down server.
@@ -71,6 +65,7 @@ namespace Chat.Server
                 await app.StopAsync();
                 Console.ReadKey();
             }
+            _logger.LogInformation($"Ports successfully sent to Dispatcher");
             
             await app.WaitForShutdownAsync();
         }

@@ -4,7 +4,6 @@ namespace Chat.Dispatcher
 {
     public class AuthRequest
     {
-        [Required]
-        public string Login { get; } = null!;
+        [Required] public string Login { get; init; } = string.Empty;
     }
 }

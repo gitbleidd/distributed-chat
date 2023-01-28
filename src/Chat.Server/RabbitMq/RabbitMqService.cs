@@ -11,14 +11,13 @@ namespace Chat.Server.RabbitMq
     {
         private readonly ConnectionFactory _factory;
         private readonly IConnection _connection;
-        private static AsyncEventingBasicConsumer _consumer;
-        private readonly Users _users;
+        private readonly AsyncEventingBasicConsumer _consumer;
+        
         public IModel Channel { get; }
+        public string QueueName { get; }
 
-        public RabbitMqService(IConfiguration configuration, IHubContext<ChatHub> hubContext, Users users)
+        public RabbitMqService(IConfiguration configuration, IServiceProvider serviceProvider)
         {
-            _users = users;
-            
             var hostname = configuration.GetValue<string>("RabbitMq:Hostname");
             var port = configuration.GetValue<int>("RabbitMq:Port");
             var username = configuration.GetValue<string>("RabbitMq:Username");
@@ -36,44 +35,46 @@ namespace Chat.Server.RabbitMq
             _connection = _factory.CreateConnection();
             Channel = _connection.CreateModel();
 
-            string queueName = (Guid.NewGuid()).ToString();
-            Channel.QueueDeclare(queue: queueName,
+            QueueName = (Guid.NewGuid()).ToString();
+            Channel.QueueDeclare(queue: QueueName,
                 durable: true,
                 exclusive: true,
                 autoDelete: true,
                 arguments: null);
 
-            Channel.QueueBind(queue: queueName,
+            Channel.QueueBind(queue: QueueName,
                 exchange: "amq.fanout",
                 routingKey: "");
             
+            
             _consumer = new AsyncEventingBasicConsumer(Channel);
-
-            _consumer.Received += async (model, ea) =>
+            async Task OnConsumerOnReceived(object model, BasicDeliverEventArgs ea)
             {
                 var body = ea.Body.ToArray();
                 var message = Encoding.UTF8.GetString(body);
 
                 var chatMqMessage = JsonConvert.DeserializeObject<ChatMqMessage>(message);
-                if (chatMqMessage == null) 
-                    return;
+                if (chatMqMessage == null) return;
 
                 string sessionId = string.Empty;
-                foreach (KeyValuePair<string, string> serverUsername in _users.Logins)
+                var users = serviceProvider.GetRequiredService<Users>();
+                foreach (KeyValuePair<string, string> serverUsername in users.Logins)
                 {
-                    if (serverUsername.Value == chatMqMessage.Username)
-                    {
-                        sessionId = serverUsername.Key;
-                        break;
-                    }
+                    if (serverUsername.Value != chatMqMessage.Username) continue;
+                    sessionId = serverUsername.Key;
+                    break;
                 }
 
                 if (string.IsNullOrEmpty(sessionId))
-                    await hubContext.Clients.AllExcept(sessionId).SendAsync("ReceiveMessage", chatMqMessage.Username, chatMqMessage.Content);
-                        
-            };
-
-            Channel.BasicConsume(queue: queueName,
+                {
+                    var hubContext = serviceProvider.GetRequiredService<IHubContext<ChatHub>>();
+                    await hubContext.Clients.AllExcept(sessionId).SendAsync(
+                        "ReceiveMessage", chatMqMessage.Username, chatMqMessage.Content);
+                }
+            }
+            
+            _consumer.Received += OnConsumerOnReceived;
+            Channel.BasicConsume(queue: QueueName,
                 autoAck: true,
                 consumer: _consumer);
         }

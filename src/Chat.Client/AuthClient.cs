@@ -18,7 +18,8 @@ namespace Chat.Client
 
         public static async Task<(int, string)> Auth(string login)
         {
-            var json = $"{{\"login\": \"{login}\"}}";
+            // var json = $"{{\"Login\": \"{login}\"}}";
+            string json = JsonConvert.SerializeObject(new { Login = login });
             StringContent postContent = new(json, Encoding.UTF8, "application/json");
 
             try

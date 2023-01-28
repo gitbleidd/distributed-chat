@@ -1,5 +1,4 @@
-﻿using Chat.Server;
-using Grpc.Core;
+﻿using Grpc.Core;
 using Rpc.Core;
 
 namespace Chat.Server.GrpcServices

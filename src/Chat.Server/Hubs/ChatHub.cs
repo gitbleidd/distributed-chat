@@ -10,13 +10,13 @@ namespace Chat.Server.Hubs
     {
         private readonly ChatContext _context;
         private readonly Users _users;
-        private readonly RabbitMqTransportService _rabbitMq;
+        private readonly RabbitMqConsumerService _rabbitMq;
 
-        public ChatHub(ChatContext context, Users users, RabbitMqTransportService rabbitMq)
+        public ChatHub(ChatContext context, Users users, RabbitMqConsumerService mqConsumer, IServiceProvider serviceProvider)
         {
             _context = context;
             _users = users;
-            _rabbitMq = rabbitMq;
+            _rabbitMq = mqConsumer;
         }
 
         public async Task SendMessage(string user, string message)
