@@ -8,14 +8,14 @@ namespace Chat.Server
 {
     public class Program
     {
-        private static readonly ILogger<Program> _logger;
+        private static readonly ILogger<Program> Logger;
         static Program()
         {
             var loggerFactory = LoggerFactory.Create(builder =>
             {
                 builder.AddConsole();                
             });
-            _logger = loggerFactory.CreateLogger<Program>();
+            Logger = loggerFactory.CreateLogger<Program>();
         }
 
         public static async Task Main(string[] args)
@@ -30,11 +30,11 @@ namespace Chat.Server
 
             string connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
             builder.Services.AddDbContext<ChatContext>(options => options.UseNpgsql(connectionString));
-            builder.Services.AddSingleton(new Users());
-
-            builder.Services.AddSingleton<RabbitMqService>();
-            builder.Services.AddSingleton<RabbitMqConsumerService>();
-
+            builder.Services.AddTransient<MessageHandler>();
+            builder.Services.AddSingleton(new UsersStorage());
+            builder.Services.AddSingleton<RabbitMqWrapper>();
+            builder.Services.AddSingleton<RabbitMqPublisher>();
+            
             var app = builder.Build();
 
             app.MapGrpcService<GrpcServices.InteractionService>();
@@ -47,7 +47,19 @@ namespace Chat.Server
             });
             
             app.Start();
-            var rabbitMqService = app.Services.GetService<RabbitMqService>();
+            var rabbitMqWrapper = app.Services.GetRequiredService<RabbitMqWrapper>();
+            rabbitMqWrapper.Consumer.Received += async (sender, @event) =>
+            {
+                try
+                {
+                    var messageHandler = app.Services.GetRequiredService<MessageHandler>();
+                    await messageHandler.Handle(sender, @event);
+                }
+                catch (Exception e)
+                {
+                    Logger.LogError(e.Message);
+                }
+            };
 
             // Sending server http1 and http2 ports to dispatcher or else
             // shutting down server.
@@ -55,17 +67,17 @@ namespace Chat.Server
             var ports = ServerInitUtils.GetServerPorts(app.Services);
             if (ports.Count != 2)
             {
-                _logger.LogError("Couldn't get two ports (HTTP/1.1, HTTP/2.0) kestrel is running on");
+                Logger.LogError("Couldn't get two ports (HTTP/1.1, HTTP/2.0) kestrel is running on");
                 await app.StopAsync();
                 Console.ReadKey();
             }
-            if (!await ServerInitUtils.SendPortsToDispatcher(_logger, dispatcherAddress, ports.First(), ports.Skip(1).First()))
+            if (!await ServerInitUtils.SendPortsToDispatcher(Logger, dispatcherAddress, ports.First(), ports.Skip(1).First()))
             {
-                _logger.LogError("Couldn't connect to dispatcher");
+                Logger.LogError("Couldn't connect to dispatcher");
                 await app.StopAsync();
                 Console.ReadKey();
             }
-            _logger.LogInformation($"Ports successfully sent to Dispatcher");
+            Logger.LogInformation($"Ports successfully sent to Dispatcher");
             
             await app.WaitForShutdownAsync();
         }

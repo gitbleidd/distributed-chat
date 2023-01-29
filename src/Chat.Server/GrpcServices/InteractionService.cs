@@ -5,8 +5,8 @@ namespace Chat.Server.GrpcServices
 {
     public class InteractionService : Rpc.Core.ServiceInteraction.ServiceInteractionBase
     {
-        private readonly Users _users; // Current server list of users
-        public InteractionService(Users users)
+        private readonly UsersStorage _users; // Current server list of users
+        public InteractionService(UsersStorage users)
         {
             _users = users;
         }

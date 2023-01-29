@@ -9,10 +9,10 @@ namespace Chat.Server.Hubs
     public class ChatHub : Hub
     {
         private readonly ChatContext _context;
-        private readonly Users _users;
-        private readonly RabbitMqConsumerService _rabbitMq;
+        private readonly UsersStorage _users;
+        private readonly RabbitMqPublisher _rabbitMq;
 
-        public ChatHub(ChatContext context, Users users, RabbitMqConsumerService mqConsumer, IServiceProvider serviceProvider)
+        public ChatHub(ChatContext context, UsersStorage users, RabbitMqPublisher mqConsumer)
         {
             _context = context;
             _users = users;

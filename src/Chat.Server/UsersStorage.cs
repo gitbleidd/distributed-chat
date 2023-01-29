@@ -2,7 +2,7 @@
 
 namespace Chat.Server
 {
-    public class Users
+    public class UsersStorage
     {
         public ConcurrentDictionary<string, string> Logins = new();
     }
